@@ -1,297 +1,291 @@
 import sqlite3
 
-# ---------- Database Setup ----------
-def initialize_database():
-    conn = sqlite3.connect("marks_management.db")
-    cursor = conn.cursor()
+subjects = {
+    1: "Math II",
+    2: "OOS",
+    3: "CN",
+    4: "GMM",
+    5: "GTC"
+}
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS students(
-        rollno INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        marks1 INTEGER,
-        marks2 INTEGER,
-        marks3 INTEGER,
-        marks4 INTEGER,
-        marks5 INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
+subject_columns = {
+    1: "mathII",
+    2: "oos",
+    3: "cn",
+    4: "gmm",
+    5: "gtc"
+}
 
-    conn.commit()
-    return conn, cursor
+# Connecting to database
+def connect_db():
+    try:
+        conn = sqlite3.connect("marks_management1.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS students (
+                rollno INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                mathII INTEGER CHECK(mathII BETWEEN 0 AND 100),
+                oos INTEGER CHECK(oos BETWEEN 0 AND 100),
+                cn INTEGER CHECK(cn BETWEEN 0 AND 100),
+                gmm INTEGER CHECK(gmm BETWEEN 0 AND 100),
+                gtc INTEGER CHECK(gtc BETWEEN 0 AND 100)
+            )
+        ''')
+        conn.commit()
+        return conn, cursor
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        exit()
 
-
-# ---------- Add Student ----------
-def add_new_student(cur, conn):
-
-    name = input("Enter student name: ")
-
-    while True:
-        try:
-            roll = int(input("Enter roll number: "))
-            cur.execute("SELECT rollno FROM students WHERE rollno=?", (roll,))
-            if cur.fetchone():
-                print("Roll number already exists.")
-            else:
-                break
-        except ValueError:
-            print("Invalid roll number.")
-
-    marks = []
-
-    for i in range(1,6):
+# Adding Students to Database 
+def add_student(cursor, conn):
+    try:
+        name = input("Enter name: ").strip()
         while True:
             try:
-                m = int(input(f"Enter marks for subject {i} (0-100): "))
-                if 0 <= m <= 100:
-                    marks.append(m)
+                rollno = int(input("Enter rollno: "))
+                cursor.execute("SELECT * FROM students WHERE rollno = ?", (rollno,))
+                if cursor.fetchone():
+                    print("Roll number already exists. Please enter a unique roll number.")
+                else:
+                    break
+            except ValueError:
+                print("Invalid input! Please enter a valid roll number.")
+        
+        marks = []
+        for i in range(5):
+            while True:
+                try:
+                    mark = int(input(f"Enter {subjects[i + 1]} marks (0-100): "))
+                    if 0 <= mark <= 100:
+                        marks.append(mark)
+                        break
+                    else:
+                        print("Marks should be between 0 and 100.")
+                except ValueError:
+                    print("Invalid input! Please enter a valid number.")
+                    
+        cursor.execute("INSERT INTO students VALUES (?, ?, ?, ?, ?, ?, ?)", (rollno, name, *marks))
+        conn.commit()
+        print("Student added successfully...")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Deleting Students from Database
+def delete_student(cursor, conn):
+    try:
+        roll_no = int(input("Enter rollno to delete: "))
+        cursor.execute("SELECT * FROM students WHERE rollno = ?", (roll_no,))
+        student = cursor.fetchone()
+        if student:
+            confirm = input(f"Are you sure you want to delete student {student[1]} (Roll No: {roll_no})? (yes/no): ").strip().lower()
+            if confirm == "yes":
+                cursor.execute("DELETE FROM students WHERE rollno = ?", (roll_no,))
+                conn.commit()
+                print("Student deleted successfully...")
+            else:
+                print("Deletion cancelled.")
+        else:
+            print("Student not found...")
+    except ValueError:
+        print("Invalid input! Please enter a valid roll number.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Updating Marks of students by Class Teacher (can update any subject)
+def update_marks(cursor, conn):
+    try:
+        roll_no = int(input("Enter rollno to update: "))
+        cursor.execute("SELECT * FROM students WHERE rollno = ?", (roll_no,))
+        student = cursor.fetchone()
+        if student:
+            subject_id = int(input("Enter the subject ID (1-5): "))
+            if 1 <= subject_id <= 5:
+                new_marks = int(input(f"Enter new marks for {subjects[subject_id]} (0-100): "))
+                if 0 <= new_marks <= 100:
+                    column_name = subject_columns[subject_id]
+                    cursor.execute(f"UPDATE students SET {column_name} = ? WHERE rollno = ?", (new_marks, roll_no))
+                    conn.commit()
+                    print("Marks updated successfully...")
+                else:
+                    print("Marks should be between 0 and 100.")
+            else:
+                print("Invalid subject ID...")
+        else:
+            print("Student not found...")
+    except ValueError:
+        print("Invalid input! Please enter numerical values only.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Update marks for a specific subject (Subject Teacher)
+def update_subject_marks(cursor, conn, subject_id):
+    try:
+        print(f"\nUpdating marks for {subjects[subject_id]}")
+        # First, show all students with their current marks for this subject
+        display_students_for_subject(cursor, subject_id)
+        
+        roll_no = int(input("\nEnter rollno to update marks: "))
+        column_name = subject_columns[subject_id]
+        cursor.execute(f"SELECT rollno, name, {column_name} FROM students WHERE rollno = ?", (roll_no,))
+        student = cursor.fetchone()
+        
+        if student:
+            print(f"Current marks for {student[1]} (Roll No: {student[0]}) in {subjects[subject_id]}: {student[2]}")
+            new_marks = int(input(f"Enter new marks for {subjects[subject_id]} (0-100): "))
+            if 0 <= new_marks <= 100:
+                cursor.execute(f"UPDATE students SET {column_name} = ? WHERE rollno = ?", (new_marks, roll_no))
+                conn.commit()
+                print("Marks updated successfully...")
+            else:
+                print("Marks should be between 0 and 100.")
+        else:
+            print("Student not found...")
+    except ValueError:
+        print("Invalid input! Please enter numerical values only.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Display Students according to required Order
+def display_students(cursor, order_by="rollno ASC"):
+    try:
+        cursor.execute(f'''
+            SELECT rollno, name, mathII, oos, cn, gmm, gtc, 
+            (mathII + oos + cn + gmm + gtc) AS totalmarks 
+            FROM students ORDER BY {order_by}
+        ''')
+        students = cursor.fetchall()
+        if students:
+            print("\n--- Student details ---")
+            print("%-10s %-20s %-10s %-10s %-10s %-10s %-10s %-10s" % 
+                  ("Rollno", "Name", "Math II", "OOS", "CN", "GMM", "GTC", "Total"))
+            print("-" * 90)
+            for st in students:
+                print("%-10d %-20s %-10d %-10d %-10d %-10d %-10d %-10d" % st)
+        else:
+            print("No student records found.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Display Students for a specific subject
+def display_students_for_subject(cursor, subject_id):
+    try:
+        column_name = subject_columns[subject_id]
+        cursor.execute(f'''
+            SELECT rollno, name, {column_name}
+            FROM students ORDER BY rollno
+        ''')
+        students = cursor.fetchall()
+        if students:
+            print(f"\n--- Student details for {subjects[subject_id]} ---")
+            print("%-10s %-20s %-10s" % ("Rollno", "Name", subjects[subject_id]))
+            print("-" * 40)
+            for st in students:
+                print("%-10d %-20s %-10d" % st)
+        else:
+            print("No student records found.")
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+
+# Menu System for Class Teacher
+def class_teacher(cursor, conn):
+    while True:
+        try:
+            print("\n==== Class Teacher Menu ====")
+            print("1. Add student")
+            print("2. Update marks for any subject")
+            print("3. Delete student")
+            print("4. View all students")
+            print("0. Back to main menu")
+            choice = int(input("Enter choice: "))
+            if choice == 1:
+                add_student(cursor, conn)
+            elif choice == 2:
+                update_marks(cursor, conn)
+            elif choice == 3:
+                delete_student(cursor, conn)
+            elif choice == 4:
+                display_students(cursor)
+            elif choice == 0:
+                break
+            else:
+                print("Invalid input. Please try again.")
+        except ValueError:
+            print("Invalid input! Please enter a number.")
+
+# Menu System for Subject Teacher
+def subject_teacher(cursor, conn):
+    try:
+        subject_id = 0
+        while subject_id < 1 or subject_id > 5:
+            try:
+                subject_id = int(input("Enter your subject ID (1-5): "))
+                if subject_id < 1 or subject_id > 5:
+                    print("Invalid subject ID. Please enter a number between 1 and 5.")
+            except ValueError:
+                print("Invalid input! Please enter a number.")
+        
+        while True:
+            try:
+                print(f"\n==== {subjects[subject_id]} Teacher Menu ====")
+                print(f"1. Update marks for {subjects[subject_id]}")
+                print(f"2. View students with {subjects[subject_id]} marks")
+                print("3. View all student details")
+                print("0. Back to main menu")
+                choice = int(input("Enter choice: "))
+                if choice == 1:
+                    update_subject_marks(cursor, conn, subject_id)
+                elif choice == 2:
+                    display_students_for_subject(cursor, subject_id)
+                elif choice == 3:
+                    display_students(cursor)
+                elif choice == 0:
                     break
                 else:
-                    print("Marks must be between 0 and 100.")
+                    print("Invalid input. Please try again.")
             except ValueError:
-                print("Invalid input.")
-
-    cur.execute(
-        "INSERT INTO students (rollno,name,marks1,marks2,marks3,marks4,marks5) VALUES (?,?,?,?,?,?,?)",
-        (roll,name,*marks)
-    )
-
-    conn.commit()
-    print("Student added successfully.")
-
-
-# ---------- Delete Student ----------
-def delete_student(cur, conn):
-
-    try:
-        roll = int(input("Enter roll number to delete: "))
-        cur.execute("SELECT name FROM students WHERE rollno=?", (roll,))
-        record = cur.fetchone()
-
-        if record:
-            confirm = input(f"Delete record of {record[0]}? (yes/no): ")
-
-            if confirm.lower() == "yes":
-                cur.execute("DELETE FROM students WHERE rollno=?", (roll,))
-                conn.commit()
-                print("Record deleted.")
-        else:
-            print("Student not found.")
-
-    except ValueError:
-        print("Invalid input.")
-
-
-# ---------- Update Marks ----------
-def update_marks(cur, conn):
-
-    try:
-        roll = int(input("Enter roll number: "))
-        cur.execute("SELECT * FROM students WHERE rollno=?", (roll,))
-        record = cur.fetchone()
-
-        if not record:
-            print("Student not found.")
-            return
-
-        subject = int(input("Enter subject number (1-5): "))
-        new_marks = int(input("Enter new marks: "))
-
-        if 1 <= subject <= 5 and 0 <= new_marks <= 100:
-
-            query = f"UPDATE students SET marks{subject}=? WHERE rollno=?"
-            cur.execute(query,(new_marks,roll))
-
-            conn.commit()
-            print("Marks updated successfully.")
-
-        else:
-            print("Invalid subject or marks.")
-
-    except ValueError:
-        print("Invalid input.")
-
-
-# ---------- Search Student ----------
-def search_student(cur):
-
-    try:
-        roll = int(input("Enter roll number to search: "))
-
-        cur.execute("SELECT * FROM students WHERE rollno=?", (roll,))
-        record = cur.fetchone()
-
-        if record:
-            print("\nStudent Found")
-            print("Roll No:",record[0])
-            print("Name:",record[1])
-            print("Marks:",record[2:7])
-            print("Created At:",record[7])
-        else:
-            print("Student not found.")
-
-    except ValueError:
-        print("Invalid input.")
-
-
-# ---------- Display Students ----------
-def display_students(cur, order="rollno ASC"):
-
-    cur.execute(f"""
-        SELECT rollno,name,marks1,marks2,marks3,marks4,marks5,
-        (marks1+marks2+marks3+marks4+marks5) AS total,
-        ROUND((marks1+marks2+marks3+marks4+marks5)/5.0,2) AS avg
-        FROM students
-        ORDER BY {order}
-    """)
-
-    rows = cur.fetchall()
-
-    if not rows:
-        print("No records found.")
-        return
-
-    print("\n--- Student details ---")
-    print("RollNo   Name                 S1  S2  S3  S4  S5  Total Avg")
-    print("-"*65)
-
-    for r in rows:
-       print(f"{r[0]:<8}{r[1]:<20}{r[2]:<4}{r[3]:<4}{r[4]:<4}{r[5]:<4}{r[6]:<4}{r[7]:<6}{r[8]:.2f}")
-
-
-# ---------- Subject Teacher ----------
-def subject_teacher_menu(cur, conn):
-
-    try:
-        sub = int(input("Enter subject number (1-5): "))
-
-        if sub < 1 or sub > 5:
-            print("Invalid subject.")
-            return
-
-        while True:
-
-            print(f"\n==== Subject {sub} Teacher Menu ====")
-            print("1 Update Marks")
-            print("2 View Subject Marks")
-            print("0 Back")
-
-            choice = int(input("Choice: "))
-
-            if choice == 1:
-
-                roll = int(input("Enter roll number: "))
-                marks = int(input("Enter new marks: "))
-
-                if 0 <= marks <= 100:
-
-                    cur.execute(
-                        f"UPDATE students SET marks{sub}=? WHERE rollno=?",
-                        (marks,roll)
-                    )
-
-                    conn.commit()
-                    print("Marks updated.")
-
-            elif choice == 2:
-
-                cur.execute(f"SELECT rollno,name,marks{sub} FROM students")
-                data = cur.fetchall()
-
-                print(f"\n--- Student details for Subject {sub} ---")
-                print("RollNo   Name                 Marks")
-                print("-"*40)
-
-                for d in data:
-                    print("%-8d %-20s %-3d" % d)
-
-            elif choice == 0:
-                break
-
-    except ValueError:
-        print("Invalid input.")
-
-
-# ---------- Class Teacher ----------
-def class_teacher_menu(cur, conn):
-
-    while True:
-
-        print("\n==== Class Teacher Menu ====")
-        print("1 Add Student")
-        print("2 Update Marks")
-        print("3 Delete Student")
-        print("4 Display Students")
-        print("5 Search Student")
-        print("0 Back")
-
-        try:
-            choice = int(input("Choice: "))
-
-            if choice == 1:
-                add_new_student(cur,conn)
-
-            elif choice == 2:
-                update_marks(cur,conn)
-
-            elif choice == 3:
-                delete_student(cur,conn)
-
-            elif choice == 4:
-                display_students(cur)
-
-            elif choice == 5:
-                search_student(cur)
-
-            elif choice == 0:
-                break
-
-        except ValueError:
-            print("Invalid choice.")
-
-
-# ---------- Student View ----------
-def student_view(cur):
-
-    print("\n==== Student Marks Management System ====")
-    print("\n--- Rank List ---")
-    display_students(cur,"total DESC")
-
-
-# ---------- Main Program ----------
+                print("Invalid input! Please enter a number.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+# Show Marks of Students in Decreasing Order of Total Marks (Student View)
+def student(cursor):
+    print("\n==== Student Results (Ranked by Total Marks) ====")
+    display_students(cursor, "totalmarks DESC")
+
+# Main Menu of the Program
 def main():
-
-    conn,cur = initialize_database()
-
-    while True:
-
-        print("\n==== Student Marks Management System ====")
-        print("1 Class Teacher")
-        print("2 Subject Teacher")
-        print("3 Student")
-        print("0 Exit")
-
-        try:
-            option = int(input("Enter choice: "))
-
-            if option == 1:
-                class_teacher_menu(cur,conn)
-
-            elif option == 2:
-                subject_teacher_menu(cur,conn)
-
-            elif option == 3:
-                student_view(cur)
-
-            elif option == 0:
-                print("Program closed.")
-                conn.close()
-                break
-
-        except ValueError:
-            print("Invalid input.")
-
+    conn, cursor = connect_db()
+    try:
+        while True:
+            print("\n==== Student Marks Management System ====")
+            print("1. Class Teacher")
+            print("2. Subject Teacher")
+            print("3. Student")
+            print("0. Exit")
+            try:
+                choice = int(input("Enter choice: "))
+                if choice == 1:
+                    class_teacher(cursor, conn)
+                elif choice == 2:
+                    subject_teacher(cursor, conn)
+                elif choice == 3:
+                    student(cursor)
+                elif choice == 0:
+                    print("Exiting program...")
+                    conn.close()
+                    exit()
+                else:
+                    print("Invalid input. Please try again.")
+            except ValueError:
+                print("Invalid input! Please enter a number.")
+    except KeyboardInterrupt:
+        print("\nProgram interrupted. Exiting...")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     main()
