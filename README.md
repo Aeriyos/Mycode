@@ -5,7 +5,7 @@
 - Ajoy Roy
 
 ## Assignments
-- 1. Inventory Management System (Rajesh Sen)
+- 1. Inventory Management System (Sanchita Mukherjee)
 - 2. Marks Management System with Git (Ajoy Roy)
 
 # Inventory Management System
