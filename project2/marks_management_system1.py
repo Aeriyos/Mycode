@@ -35,7 +35,7 @@ def add_new_student(cur, conn):
                 print("Roll number already exists.")
             else:
                 break
-        except:
+        except ValueError:
             print("Invalid roll number.")
 
     marks = []
@@ -49,7 +49,7 @@ def add_new_student(cur, conn):
                     break
                 else:
                     print("Marks must be between 0 and 100.")
-            except:
+            except ValueError:
                 print("Invalid input.")
 
     cur.execute(
@@ -79,7 +79,7 @@ def delete_student(cur, conn):
         else:
             print("Student not found.")
 
-    except:
+    except ValueError:
         print("Invalid input.")
 
 
@@ -109,7 +109,7 @@ def update_marks(cur, conn):
         else:
             print("Invalid subject or marks.")
 
-    except:
+    except ValueError:
         print("Invalid input.")
 
 
@@ -131,7 +131,7 @@ def search_student(cur):
         else:
             print("Student not found.")
 
-    except:
+    except ValueError:
         print("Invalid input.")
 
 
@@ -157,7 +157,7 @@ def display_students(cur, order="rollno ASC"):
     print("-"*65)
 
     for r in rows:
-        print("%-8d %-20s %-3d %-3d %-3d %-3d %-3d %-4d %-5.2f" % r)
+       print(f"{r[0]:<8}{r[1]:<20}{r[2]:<4}{r[3]:<4}{r[4]:<4}{r[5]:<4}{r[6]:<4}{r[7]:<6}{r[8]:.2f}")
 
 
 # ---------- Subject Teacher ----------
@@ -209,7 +209,7 @@ def subject_teacher_menu(cur, conn):
             elif choice == 0:
                 break
 
-    except:
+    except ValueError:
         print("Invalid input.")
 
 
@@ -247,7 +247,7 @@ def class_teacher_menu(cur, conn):
             elif choice == 0:
                 break
 
-        except:
+        except ValueError:
             print("Invalid choice.")
 
 
@@ -289,7 +289,7 @@ def main():
                 conn.close()
                 break
 
-        except:
+        except ValueError:
             print("Invalid input.")
 
 
