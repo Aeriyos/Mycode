@@ -30,51 +30,6 @@ def create_tables():
         conn.executescript(sql)
 
 
-def insert_sample_products():
-
-    products = [
-        ("Laptop",50000,20),
-        ("Mouse",500,50),
-        ("Keyboard",1200,40),
-        ("Monitor",10000,15),
-        ("Printer",8000,10),
-        ("USB Cable",150,100),
-        ("Hard Disk",4000,25),
-        ("SSD",6000,20),
-        ("RAM 8GB",2500,30),
-        ("RAM 16GB",4500,25),
-        ("Graphics Card",30000,10),
-        ("Webcam",2000,18),
-        ("Headphones",1500,35),
-        ("Speaker",1800,30),
-        ("Router",2500,20),
-        ("Power Bank",1200,40),
-        ("Smartphone",20000,15),
-        ("Tablet",15000,12),
-        ("Charger",600,60),
-        ("Microphone",2200,15),
-        ("Projector",35000,5),
-        ("Extension Board",400,50),
-        ("LED Lamp",350,45),
-        ("Fan",1800,25),
-        ("Calculator",300,70),
-        ("Notebook Pack",250,80),
-        ("Pen Pack",100,90),
-        ("Desk Organizer",500,35),
-        ("Office Chair",7000,12),
-        ("cup holder ",2000,50)
-    ]
-
-    with connect_db() as conn:
-
-        count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-
-        if count == 0:
-            conn.executemany(
-                "INSERT INTO products(name,price,quantity) VALUES(?,?,?)",
-                products
-            )
-
 
 def display_products(products):
 
@@ -282,7 +237,6 @@ def customer_menu():
 def main():
 
     create_tables()
-    insert_sample_products()
 
     while True:
 
