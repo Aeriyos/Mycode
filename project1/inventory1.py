@@ -62,7 +62,7 @@ def insert_sample_products():
         ("Pen Pack",100,90),
         ("Desk Organizer",500,35),
         ("Office Chair",7000,12),
-        ("Study Table",9000,10)
+        ("cup holder ",2000,50)
     ]
 
     with connect_db() as conn:
