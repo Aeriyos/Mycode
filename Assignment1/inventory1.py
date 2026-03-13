@@ -166,7 +166,7 @@ def seller_menu():
         print("3 Delete Product")
         print("4 List Products")
         print("5 Sales History")
-        print("6 Back")
+        print("6 Exit")
 
         ch=input("Enter choice: ")
 
@@ -215,7 +215,7 @@ def customer_menu():
         print("Customer Menu")
         print("1 View Products")
         print("2 Buy Product")
-        print("3 Back")
+        print("3 Exit")
 
         ch=input("Enter choice: ")
 
